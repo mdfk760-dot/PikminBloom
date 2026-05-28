@@ -517,7 +517,7 @@
 
       <div class="hint">
         管理密碼預設為 <strong>pikmin-admin</strong>，可在程式碼的 <code>ADMIN_PASSWORD</code> 修改。<br />
-        目前資料儲存在瀏覽器 localStorage。若要讓所有使用者看到同一份資料，需再改接 Google Apps Script、Firebase 或 Supabase。
+        目前資料會寫入 Google Spreadsheet，所有使用者會讀取同一份通報資料。
       </div>
     </section>
 
@@ -540,8 +540,8 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const ADMIN_PASSWORD = "pikmin-admin";
-    const STORAGE_KEY = "pikminFlowerReports_v2";
+    const ADMIN_PASSWORD = "s1a2l3l4y5";
+    const API_URL = "https://script.google.com/macros/s/AKfycbzpugfRUGMJ1fAM-c1jTX3ig6NG1MbmEPWKft7IxxIQ2hJVe3WiL8mO-_eKa3EfP9xg/exec";
 
     const COLORS = ["混色", "黃色", "紅色", "藍色", "白色"];
     const FLOWERS = [
@@ -628,12 +628,71 @@
       };
     }
 
-    function loadReports() {
-      reports = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    async function loadReports() {
+      try {
+        const res = await fetch(`${API_URL}?action=list&ts=${Date.now()}`);
+        const data = await res.json();
+
+        if (!data.success) {
+          throw new Error(data.message || "讀取資料失敗");
+        }
+
+        reports = data.reports || [];
+      } catch (error) {
+        console.error(error);
+        reports = [];
+        showToast("讀取 Google Sheet 失敗");
+      }
     }
 
-    function saveReports() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+    async function saveReportToSheet(report) {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "save",
+            adminPassword: ADMIN_PASSWORD,
+            report
+          })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          alert(data.message || "儲存失敗");
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error(error);
+        alert("儲存失敗，請確認 Apps Script 已部署為 Web App，且存取權限為任何人。");
+        return false;
+      }
+    }
+
+    async function deleteReportFromSheet(id) {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "delete",
+            adminPassword: ADMIN_PASSWORD,
+            id
+          })
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          alert(data.message || "刪除失敗");
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error(error);
+        alert("刪除失敗，請確認 Apps Script 已部署為 Web App，且存取權限為任何人。");
+        return false;
+      }
     }
 
     function setAdminMode(value) {
@@ -881,10 +940,13 @@
       if (report) setFormData(report);
     }
 
-    function deleteReport(id) {
+    async function deleteReport(id) {
       if (!confirm("確定要刪除此通報嗎？")) return;
-      reports = reports.filter(item => item.id !== id);
-      saveReports();
+
+      const success = await deleteReportFromSheet(id);
+      if (!success) return;
+
+      await loadReports();
       renderReports();
       showToast("已刪除通報");
     }
@@ -916,7 +978,7 @@
       showToast(`已解析，株數已套用座標數量：${coordCount}`);
     });
 
-    $("saveBtn").addEventListener("click", () => {
+    $("saveBtn").addEventListener("click", async () => {
       const rawText = cleanSpreadsheetText($("rawInput").value);
       const coordsText = cleanCoordsText($("coordsInput").value);
 
@@ -935,11 +997,10 @@
         return;
       }
 
-      const index = reports.findIndex(item => item.id === data.id);
-      if (index >= 0) reports[index] = data;
-      else reports.unshift(data);
+      const success = await saveReportToSheet(data);
+      if (!success) return;
 
-      saveReports();
+      await loadReports();
       clearForm();
       renderReports();
       showToast("已儲存通報");
@@ -947,10 +1008,15 @@
 
     $("clearFormBtn").addEventListener("click", clearForm);
 
-    $("deleteAllBtn").addEventListener("click", () => {
+    $("deleteAllBtn").addEventListener("click", async () => {
       if (!confirm("確定要刪除全部通報嗎？此動作無法復原。")) return;
-      reports = [];
-      saveReports();
+      const ids = reports.map(item => item.id).filter(Boolean);
+      for (const id of ids) {
+        const success = await deleteReportFromSheet(id);
+        if (!success) return;
+      }
+
+      await loadReports();
       renderReports();
       showToast("已刪除全部通報");
     });
@@ -983,10 +1049,14 @@
     });
 
     fillOptions();
-    loadReports();
-    setAdminMode(isAdmin);
-    renderReports();
-    setInterval(renderReports, 60000);
+    loadReports().then(() => {
+      setAdminMode(isAdmin);
+      renderReports();
+    });
+    setInterval(async () => {
+      await loadReports();
+      renderReports();
+    }, 60000);
   </script>
 </body>
 </html>
