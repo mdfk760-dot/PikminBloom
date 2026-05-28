@@ -372,7 +372,25 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @media (max-width: 700px) {
+    @media (max-width: 1024px) {
+      header {
+        padding: 18px 12px 10px;
+      }
+
+      header h1 {
+        font-size: 24px;
+      }
+
+      header p {
+        font-size: 13px;
+      }
+
+      .wrap {
+        width: min(100% - 20px, 760px);
+        gap: 14px;
+        margin-bottom: 28px;
+      }
+
       .admin-grid { grid-template-columns: 1fr; }
       .field.half { grid-column: 1 / -1; }
       .topbar { align-items: stretch; }
@@ -384,37 +402,63 @@
       .small-row { flex-direction: column; }
       .small-row button { width: 100%; }
 
+      .result-section-title {
+        margin: 16px 4px 8px;
+        font-size: 20px;
+        line-height: 1.35;
+        display: block;
+      }
+
+      .result-section-title .sub {
+        display: block;
+        margin-top: 3px;
+        font-size: 13px;
+      }
+
       .result-table {
-        border-radius: 18px;
-        box-shadow: var(--shadow);
+        border-radius: 0;
+        box-shadow: none;
         background: transparent;
         border: 0;
         display: grid;
         gap: 12px;
       }
 
-      .result-header {
-        display: none;
+      .result-row.result-header {
+        display: none !important;
       }
 
-      .result-row {
+      .result-row,
+      .expired-row {
         display: grid;
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr !important;
         border: 1px solid var(--border);
-        border-radius: 18px;
+        border-radius: 22px;
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.92);
+        background: rgba(255, 255, 255, 0.94);
         box-shadow: var(--shadow);
       }
 
       .result-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         border-right: 0;
         border-bottom: 1px solid var(--border);
-        padding: 10px 12px;
+        padding: 12px 14px;
+        min-height: 48px;
       }
 
       .result-cell:last-child {
         border-bottom: 0;
+      }
+
+      .result-place {
+        font-size: 19px;
+      }
+
+      .result-flower {
+        font-size: 17px;
       }
 
       .result-count {
@@ -423,15 +467,43 @@
 
       .mobile-label {
         display: inline-block;
+        width: 48px;
+        flex: 0 0 48px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 900;
+        margin-right: 0;
+      }
+
+      .row-actions {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
 
       .row-actions button,
       .admin-actions button {
-        width: auto;
+        width: 100%;
+        padding: 10px 8px;
+        font-size: 14px;
       }
 
-      .detail-cell {
-        border-top: 0;
+      .admin-actions {
+        display: none;
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: 100%;
+      }
+
+      body.admin-on .admin-actions {
+        display: grid;
+      }
+
+      .expired-status {
+        grid-column: 1 / -1;
+        padding: 4px 0;
       }
     }
   </style>
