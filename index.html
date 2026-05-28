@@ -312,6 +312,16 @@
       color: var(--muted);
     }
 
+    .preview-row {
+      grid-template-columns: minmax(160px, 1.5fr) minmax(140px, 1fr) minmax(170px, 1.15fr);
+    }
+
+    .preview-status {
+      color: var(--primary-dark);
+      font-weight: 900;
+      font-size: 13px;
+    }
+
     .expired-table {
       opacity: 0.78;
     }
@@ -902,6 +912,12 @@
       return openedAt;
     }
 
+    function isUpcomingReport(report) {
+      const openedAt = parseOpeningDate(report.time);
+      if (!openedAt) return false;
+      return openedAt.getTime() > Date.now();
+    }
+
     function isExpiredReport(report) {
       const openedAt = parseOpeningDate(report.time);
       if (!openedAt) return false;
@@ -970,8 +986,42 @@
         return;
       }
 
-      const activeReports = filtered.filter(report => !isExpiredReport(report));
+      const previewReports = filtered.filter(report => isUpcomingReport(report));
+      const activeReports = filtered.filter(report => !isUpcomingReport(report) && !isExpiredReport(report));
       const expiredReports = filtered.filter(report => isExpiredReport(report));
+
+      function renderPreviewTable(list) {
+        if (!list.length) return "";
+
+        return `
+          <div class="result-section-title">開花預告區域 <span class="sub">尚未到開花時間，暫不提供座標</span></div>
+          <div class="result-table preview-table">
+            <div class="result-row result-header preview-row">
+              <div class="result-cell">花朵</div>
+              <div class="result-cell">預計開花時間</div>
+              <div class="result-cell">操作</div>
+            </div>
+            ${list.map(report => {
+              const flowerText = `${report.color || "未填花色"}${report.flower || "未填花種"}${report.amount ? report.amount + "株" : ""}`;
+              return `
+                <div class="result-row preview-row">
+                  <div class="result-cell result-flower"><span class="mobile-label">花朵</span>🌸 ${escapeHtml(flowerText)}</div>
+                  <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(formatDisplayTime(report.time) || "未填時間")}</div>
+                  <div class="result-cell">
+                    <div class="row-actions">
+                      <span class="preview-status">未開花</span>
+                      <span class="admin-actions">
+                        <button class="green" onclick="editReport('${report.id}')">編輯</button>
+                        <button class="danger" onclick="deleteReport('${report.id}')">刪除</button>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        `;
+      }
 
       function renderActiveTable(list) {
         if (!list.length) return "";
@@ -1051,7 +1101,7 @@
         `;
       }
 
-      $("cards").innerHTML = renderActiveTable(activeReports) + renderExpiredTable(expiredReports);
+      $("cards").innerHTML = renderPreviewTable(previewReports) + renderActiveTable(activeReports) + renderExpiredTable(expiredReports);
       $("empty").style.display = "none";
     }
 
