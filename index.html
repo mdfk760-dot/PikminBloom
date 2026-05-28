@@ -729,7 +729,7 @@
       $("colorInput").value = report.color || COLORS[0];
       $("flowerInput").value = report.flower || FLOWERS[0];
       $("amountInput").value = report.coords ? getCoordCount(report.coords) : (report.amount || "");
-      $("timeInput").value = report.time || "";
+      $("timeInput").value = formatDisplayTime(report.time) || "";
       $("noteInput").value = report.note || "";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -760,11 +760,41 @@
         const coordCount = report.coords ? report.coords.split("\n").filter(Boolean).length : Number(report.amount || 0);
         return report.raw.replace(/(🌸[^\n]*?)(\d+)\s*株/, `$1${coordCount}株`);
       }
-      return `${report.place}\n🌸${report.color}${report.flower}${report.amount ? report.amount + "株" : ""}\n⏰${report.time}\n📝${report.note}`.trim();
+      return `${report.place}\n🌸${report.color}${report.flower}${report.amount ? report.amount + "株" : ""}\n⏰${formatDisplayTime(report.time)}\n📝${report.note}`.trim();
+    }
+
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDisplayTime(timeText) {
+      const value = String(timeText || "").trim();
+      if (!value) return "";
+
+      const normalMatch = value.match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+      if (normalMatch) {
+        return `${Number(normalMatch[1])}/${Number(normalMatch[2])} ${pad2(Number(normalMatch[3]))}:${normalMatch[4]}`;
+      }
+
+      const date = new Date(value);
+      if (!Number.isNaN(date.getTime())) {
+        return `${date.getMonth() + 1}/${date.getDate()} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+      }
+
+      return value;
     }
 
     function parseOpeningDate(timeText) {
-      const match = String(timeText || "").match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+      const value = String(timeText || "").trim();
+      if (!value) return null;
+
+      const dateFromSheet = new Date(value);
+      if (!Number.isNaN(dateFromSheet.getTime()) && /\d{4}-\d{2}-\d{2}T/.test(value)) {
+        return dateFromSheet;
+      }
+
+      const displayValue = formatDisplayTime(value);
+      const match = displayValue.match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
       if (!match) return null;
 
       const now = new Date();
@@ -873,7 +903,7 @@
                 <div class="result-row">
                   <div class="result-cell result-place"><span class="mobile-label">花田</span>${escapeHtml(report.place || "未命名花田")}</div>
                   <div class="result-cell result-flower"><span class="mobile-label">花朵</span>🌸 ${escapeHtml(flowerText)}</div>
-                  <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(report.time || "未填時間")}</div>
+                  <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(formatDisplayTime(report.time) || "未填時間")}</div>
                   <div class="result-cell"><span class="mobile-label">備註</span>📝 ${escapeHtml(report.note || "無備註")}</div>
                   <div class="result-cell result-count"><span class="mobile-label">座標</span>${coordCount}</div>
                   <div class="result-cell">
@@ -912,7 +942,7 @@
                 <div class="result-row expired-row">
                   <div class="result-cell result-place"><span class="mobile-label">花田</span>${escapeHtml(report.place || "未命名花田")}</div>
                   <div class="result-cell result-flower"><span class="mobile-label">花朵</span>🌸 ${escapeHtml(flowerText)}</div>
-                  <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(report.time || "未填時間")}</div>
+                  <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(formatDisplayTime(report.time) || "未填時間")}</div>
                   <div class="result-cell"><span class="mobile-label">備註</span>📝 ${escapeHtml(report.note || "無備註")}</div>
                   <div class="result-cell">
                     <div class="row-actions">
