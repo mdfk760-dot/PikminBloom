@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pikmin Bloom 開花通報</title>
+  <title>妖妖開花通報</title>
   <style>
     :root {
       --bg: #fff8f2;
@@ -511,7 +511,7 @@
 <body>
   <header>
     <h1>🌸 Pikmin Bloom 開花通報</h1>
-    <p>Admin 張貼開花成果，User 可檢視通報並一鍵複製座標。</p>
+    <p>Admin 分享開花成果，User 一鍵複製座標。</p>
   </header>
 
   <main class="wrap">
@@ -532,7 +532,7 @@
     <section id="adminPanel" class="panel admin-panel">
       <div class="admin-grid">
         <div class="field half">
-          <label for="rawInput">貼上 Google Spreadsheet 通報文字</label>
+          <label for="rawInput">貼上內容</label>
           <textarea id="rawInput" placeholder="例如：
 &quot;妖妖C左
 🌸紅色菊花25株
@@ -542,7 +542,7 @@
         </div>
 
         <div class="field half">
-          <label for="coordsInput">座標們</label>
+          <label for="coordsInput">貼上座標</label>
           <textarea id="coordsInput" class="coords-box" placeholder="例如：
 25.000000,121.000000
 25.000001,121.000001
@@ -977,7 +977,7 @@
         if (!list.length) return "";
 
         return `
-          <div class="result-section-title">可收果通報 <span class="sub">開花後 1 小時內提供座標</span></div>
+          <div class="result-section-title">可收果區域 <span class="sub">開花後 1 小時內提供座標</span></div>
           <div class="result-table active-table">
             <div class="result-row result-header">
               <div class="result-cell">花田名稱</div>
