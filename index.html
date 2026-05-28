@@ -588,7 +588,7 @@
       </div>
 
       <div class="hint">
-        管理密碼預設為 <strong>pikmin-admin</strong>，可在程式碼的 <code>ADMIN_PASSWORD</code> 修改。<br />
+        管理密碼已改由 Google Apps Script 驗證，HTML 不再保存管理密碼。<br />
         目前資料會寫入 Google Spreadsheet，所有使用者會讀取同一份通報資料。
       </div>
     </section>
@@ -612,7 +612,6 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const ADMIN_PASSWORD = "pikmin-admin";
     const API_URL = "https://script.google.com/macros/s/AKfycbzpugfRUGMJ1fAM-c1jTX3ig6NG1MbmEPWKft7IxxIQ2hJVe3WiL8mO-_eKa3EfP9xg/exec";
 
     const COLORS = ["混色", "黃色", "紅色", "藍色", "白色"];
@@ -626,7 +625,8 @@
 
     let reports = [];
     let editingId = null;
-    let isAdmin = sessionStorage.getItem("pikminAdmin") === "true";
+    let adminPassword = sessionStorage.getItem("pikminAdminPassword") || "";
+    let isAdmin = sessionStorage.getItem("pikminAdmin") === "true" && !!adminPassword;
     let toastTimer = null;
 
     const $ = (id) => document.getElementById(id);
@@ -717,13 +717,32 @@
       }
     }
 
+    async function verifyAdminPassword(password) {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            action: "verify",
+            adminPassword: password
+          })
+        });
+
+        const data = await res.json();
+        return !!data.success;
+      } catch (error) {
+        console.error(error);
+        alert("無法驗證管理密碼，請確認 Apps Script 已重新部署，且存取權限為任何人。");
+        return false;
+      }
+    }
+
     async function saveReportToSheet(report) {
       try {
         const res = await fetch(API_URL, {
           method: "POST",
           body: JSON.stringify({
             action: "save",
-            adminPassword: ADMIN_PASSWORD,
+            adminPassword,
             report
           })
         });
@@ -748,7 +767,7 @@
           method: "POST",
           body: JSON.stringify({
             action: "delete",
-            adminPassword: ADMIN_PASSWORD,
+            adminPassword,
             id
           })
         });
@@ -1133,8 +1152,19 @@
     $("passwordInput").addEventListener("keydown", event => {
       if (event.key === "Enter") $("confirmLoginBtn").click();
     });
-    $("confirmLoginBtn").addEventListener("click", () => {
-      if ($("passwordInput").value === ADMIN_PASSWORD) {
+    $("confirmLoginBtn").addEventListener("click", async () => {
+      const inputPassword = $("passwordInput").value;
+
+      if (!inputPassword) {
+        alert("請輸入管理密碼。");
+        return;
+      }
+
+      const ok = await verifyAdminPassword(inputPassword);
+
+      if (ok) {
+        adminPassword = inputPassword;
+        sessionStorage.setItem("pikminAdminPassword", inputPassword);
         $("passwordInput").value = "";
         $("loginDialog").close();
         setAdminMode(true);
@@ -1146,6 +1176,8 @@
 
     $("logoutBtn").addEventListener("click", () => {
       clearForm();
+      adminPassword = "";
+      sessionStorage.removeItem("pikminAdminPassword");
       setAdminMode(false);
       showToast("已離開管理模式");
     });
