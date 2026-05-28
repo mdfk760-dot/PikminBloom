@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>妖妖開花通報</title>
+  <title>妖妖開花公告</title>
   <style>
     :root {
       --bg: #fff8f2;
@@ -510,7 +510,7 @@
 </head>
 <body>
   <header>
-    <h1>🌸 妖妖開花通報</h1>
+    <h1>🌸 妖妖開花公告</h1>
     <p>Admin 分享開花成果，User 一鍵複製座標。</p>
   </header>
 
@@ -581,25 +581,25 @@
       </div>
 
       <div class="actions">
-        <button id="parseBtn" class="green">從通報文字自動解析</button>
-        <button id="saveBtn">新增 / 更新通報</button>
+        <button id="parseBtn" class="green">從公告文字自動解析</button>
+        <button id="saveBtn">新增 / 更新公告</button>
         <button id="clearFormBtn" class="ghost">清空輸入</button>
-        <button id="deleteAllBtn" class="danger">刪除全部通報</button>
+        <button id="deleteAllBtn" class="danger">刪除全部公告</button>
       </div>
 
       <div class="hint">
         管理密碼已改由 Google Apps Script 驗證，HTML 不再保存管理密碼。<br />
-        目前資料會寫入 Google Spreadsheet，所有使用者會讀取同一份通報資料。
+        目前資料會寫入 Google Spreadsheet，所有使用者會讀取同一份公告資料。
       </div>
     </section>
 
     <section id="cards" class="cards"></section>
-    <div id="empty" class="empty">目前沒有符合條件的開花通報。</div>
+    <div id="empty" class="empty">目前沒有符合條件的開花公告。</div>
   </main>
 
   <dialog id="loginDialog">
     <h3 style="margin-top:0;">Admin 管理登入</h3>
-    <p style="color:var(--muted);line-height:1.6;">輸入管理密碼後，可新增、編輯、刪除通報。</p>
+    <p style="color:var(--muted);line-height:1.6;">輸入管理密碼後，可新增、編輯、刪除公告。</p>
     <div class="small-row">
       <input id="passwordInput" type="password" placeholder="管理密碼" />
       <button id="confirmLoginBtn">登入</button>
@@ -912,7 +912,7 @@
       const report = reports.find(item => item.id === id);
       const coords = report && report.coords ? report.coords : "";
       if (!coords) {
-        showToast("這筆通報沒有座標可以複製");
+        showToast("這筆公告沒有座標可以複製");
         return;
       }
 
@@ -934,7 +934,7 @@
       const report = reports.find(item => item.id === id);
       const content = report ? buildDisplayText(report) : "";
       if (!content) {
-        showToast("這筆通報沒有內文可以複製");
+        showToast("這筆公告沒有內文可以複製");
         return;
       }
 
@@ -1062,14 +1062,14 @@
     }
 
     async function deleteReport(id) {
-      if (!confirm("確定要刪除此通報嗎？")) return;
+      if (!confirm("確定要刪除此公告嗎？")) return;
 
       const success = await deleteReportFromSheet(id);
       if (!success) return;
 
       await loadReports();
       renderReports();
-      showToast("已刪除通報");
+      showToast("已刪除公告");
     }
 
     window.copyCoords = copyCoords;
@@ -1082,7 +1082,7 @@
       const coordsText = cleanCoordsText($("coordsInput").value);
 
       if (!rawText || !coordsText) {
-        alert("請先填入「通報文字」與「座標們」兩個欄位，再進行解析，避免資料缺漏。");
+        alert("請先填入「內容」與「座標」兩個欄位，再進行解析，避免資料缺漏。");
         return;
       }
 
@@ -1104,7 +1104,7 @@
       const coordsText = cleanCoordsText($("coordsInput").value);
 
       if (!rawText || !coordsText) {
-        alert("請先填入「通報文字」與「座標們」兩個欄位，再儲存通報，避免資料缺漏。");
+        alert("請先填入「內容」與「座標」兩個欄位，再儲存公告，避免資料缺漏。");
         return;
       }
 
@@ -1114,7 +1114,7 @@
 
       const data = getFormData();
       if (!data.place) {
-        alert("請至少填寫地點 / 花田名稱。若已貼上通報文字，可先按「從通報文字自動解析」。");
+        alert("請至少填寫地點 / 花田名稱。若已貼上公告文字，可先按「從公告文字自動解析」。");
         return;
       }
 
@@ -1124,13 +1124,13 @@
       await loadReports();
       clearForm();
       renderReports();
-      showToast("已儲存通報");
+      showToast("已儲存公告");
     });
 
     $("clearFormBtn").addEventListener("click", clearForm);
 
     $("deleteAllBtn").addEventListener("click", async () => {
-      if (!confirm("確定要刪除全部通報嗎？此動作無法復原。")) return;
+      if (!confirm("確定要刪除全部公告嗎？此動作無法復原。")) return;
       const ids = reports.map(item => item.id).filter(Boolean);
       for (const id of ids) {
         const success = await deleteReportFromSheet(id);
@@ -1139,7 +1139,7 @@
 
       await loadReports();
       renderReports();
-      showToast("已刪除全部通報");
+      showToast("已刪除全部公告");
     });
 
     $("coordsInput").addEventListener("input", syncAmountWithCoords);
