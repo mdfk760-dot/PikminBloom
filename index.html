@@ -313,7 +313,7 @@
     }
 
     .preview-row {
-      grid-template-columns: minmax(160px, 1.5fr) minmax(140px, 1fr) minmax(170px, 1.15fr);
+      grid-template-columns: minmax(160px, 1.45fr) minmax(140px, 1fr) minmax(140px, 1fr) minmax(170px, 1.15fr);
     }
 
     .preview-status {
@@ -1026,13 +1026,39 @@
       return Number(report.amount || 0);
     }
 
+    function getPreviewCompleteMinutes(report) {
+      const coordCount = getReportCoordCount(report);
+
+      // 低於 30 株時，完成時間依實際株數分鐘計算；30 株以上最多以 30 分鐘計算。
+      if (coordCount > 0 && coordCount < PREVIEW_EXTRA_MINUTES) {
+        return coordCount;
+      }
+
+      return PREVIEW_EXTRA_MINUTES;
+    }
+
     function isUpcomingReport(report) {
       const openedAt = parseOpeningDate(report.time);
       if (!openedAt) return false;
 
-      // 首株開花時間 + 30 分鐘後，才從「開花預告區域」移到「可收果區域」。
-      const moveToActiveAt = openedAt.getTime() + PREVIEW_EXTRA_MINUTES * 60 * 1000;
+      // 預計完成時間後，才從「開花預告區域」移到「可收果區域」。
+      const moveToActiveAt = openedAt.getTime() + getPreviewCompleteMinutes(report) * 60 * 1000;
       return Date.now() < moveToActiveAt;
+    }
+
+    function getPreviewStatus(report) {
+      const openedAt = parseOpeningDate(report.time);
+      if (!openedAt) return "未開花";
+
+      return Date.now() < openedAt.getTime() ? "未開花" : "開花中";
+    }
+
+    function getPreviewCompleteTime(report) {
+      const openedAt = parseOpeningDate(report.time);
+      if (!openedAt) return "未填時間";
+
+      const moveToActiveAt = new Date(openedAt.getTime() + getPreviewCompleteMinutes(report) * 60 * 1000);
+      return formatDisplayTime(moveToActiveAt.toISOString());
     }
 
     function isExpiredReport(report) {
@@ -1121,17 +1147,21 @@
             <div class="result-row result-header preview-row">
               <div class="result-cell">花朵</div>
               <div class="result-cell">預計開花時間</div>
+              <div class="result-cell">預計完成時間</div>
               <div class="result-cell">操作</div>
             </div>
             ${list.map(report => {
               const flowerText = `${report.color || "未填花色"}${report.flower || "未填花種"}${report.amount ? report.amount + "株" : ""}`;
+              const previewStatus = getPreviewStatus(report);
+              const previewCompleteTime = getPreviewCompleteTime(report);
               return `
                 <div class="result-row preview-row">
                   <div class="result-cell result-flower"><span class="mobile-label">花朵</span>🌸 ${escapeHtml(flowerText)}</div>
-                  <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(formatDisplayTime(report.time) || "未填時間")}</div>
+                  <div class="result-cell"><span class="mobile-label">開花</span>⏰ ${escapeHtml(formatDisplayTime(report.time) || "未填時間")}</div>
+                  <div class="result-cell"><span class="mobile-label">完成</span>✅ ${escapeHtml(previewCompleteTime)}</div>
                   <div class="result-cell">
                     <div class="row-actions">
-                      <span class="preview-status">開花中</span>
+                      <span class="preview-status">${escapeHtml(previewStatus)}</span>
                       <span class="admin-actions">
                         <button class="green" onclick="editReport('${report.id}')">編輯</button>
                         <button class="danger" onclick="deleteReport('${report.id}')">刪除</button>
