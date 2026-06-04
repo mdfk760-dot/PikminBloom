@@ -435,7 +435,7 @@
     .notice-float-list .yes {
       color: var(--green-dark);
     }
-    
+
     @media (max-width: 1024px) {
       header {
         padding: 18px 12px 10px;
@@ -679,7 +679,7 @@
     <div id="empty" class="empty">目前沒有符合條件的開花公告。</div>
   </main>
 
-  <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【疲勞部私人群組】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用</footer>
+  <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【疲勞部私人群組】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用。</footer>
 
   <dialog id="loginDialog">
     <h3 style="margin-top:0;">Admin 管理登入</h3>
@@ -947,8 +947,7 @@
       "✗ 請勿踩踏沒有提供的座標",
       "✗ 收果後請刪檔避免開錯檔誤踩",
       "✓ 開花後僅第𝟏小時會有果實",
-      "✓ 花瓣不夠可只派𝟏皮種花",
-      "https://mdfk760-dot.github.io/PikminBloom/"      
+      "✓ 花瓣不夠可只派𝟏皮種花"
     ].join("\n");
 
     function removeCopyNoticeFooter(text) {
@@ -1018,16 +1017,32 @@
       return openedAt;
     }
 
+    const PREVIEW_EXTRA_MINUTES = 30;
+    const FRUIT_AVAILABLE_MINUTES = 60;
+
+    function getReportCoordCount(report) {
+      if (report.coords) return report.coords.split("\n").filter(Boolean).length;
+      return Number(report.amount || 0);
+    }
+
     function isUpcomingReport(report) {
       const openedAt = parseOpeningDate(report.time);
       if (!openedAt) return false;
-      return openedAt.getTime() > Date.now();
+
+      // 首株開花時間 + 30 分鐘後，才從「開花預告區域」移到「可收果區域」。
+      const moveToActiveAt = openedAt.getTime() + PREVIEW_EXTRA_MINUTES * 60 * 1000;
+      return Date.now() < moveToActiveAt;
     }
 
     function isExpiredReport(report) {
       const openedAt = parseOpeningDate(report.time);
       if (!openedAt) return false;
-      return Date.now() - openedAt.getTime() > 60 * 60 * 1000;
+
+      // 末株開花時間約為：首株開花時間 + 座標數量分鐘。
+      // 過期時間為：首株開花時間 + 1 小時 + 座標數量分鐘。
+      const coordCount = getReportCoordCount(report);
+      const expireAt = openedAt.getTime() + (FRUIT_AVAILABLE_MINUTES + coordCount) * 60 * 1000;
+      return Date.now() > expireAt;
     }
 
     async function copyCoords(id) {
@@ -1100,7 +1115,7 @@
         if (!list.length) return "";
 
         return `
-          <div class="result-section-title">開花預告區域 <span class="sub">尚未到開花時間，暫不提供座標</span></div>
+          <div class="result-section-title">開花預告區域 <span class="sub">目前正處於未開花/開花中，暫不提供座標，開花完畢後會轉移到可收果區域</span></div>
           <div class="result-table preview-table">
             <div class="result-row result-header preview-row">
               <div class="result-cell">花朵</div>
@@ -1115,7 +1130,7 @@
                   <div class="result-cell"><span class="mobile-label">時間</span>⏰ ${escapeHtml(formatDisplayTime(report.time) || "未填時間")}</div>
                   <div class="result-cell">
                     <div class="row-actions">
-                      <span class="preview-status">未開花</span>
+                      <span class="preview-status">開花中</span>
                       <span class="admin-actions">
                         <button class="green" onclick="editReport('${report.id}')">編輯</button>
                         <button class="danger" onclick="deleteReport('${report.id}')">刪除</button>
@@ -1133,7 +1148,7 @@
         if (!list.length) return "";
 
         return `
-          <div class="result-section-title">可收果區域 <span class="sub">開花後 1 小時內提供座標</span></div>
+          <div class="result-section-title">可收果區域 <span class="sub">開花後 1 小時內提供座標，末花凋謝後會轉移到過期區域</span></div>
           <div class="result-table active-table">
             <div class="result-row result-header">
               <div class="result-cell">花田名稱</div>
