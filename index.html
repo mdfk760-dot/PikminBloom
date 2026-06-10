@@ -781,7 +781,7 @@
 
       const color = COLORS.find(c => flowerLine.includes(c)) || "";
       const flower = FLOWERS.find(f => flowerLine.includes(f)) || "";
-      const amountMatch = flowerLine.match(/(\d+)\s*[株珠]/);
+      const amountMatch = flowerLine.match(/(\d+)\s*株/);
       const timeMatch = timeLine.match(/(\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2})/);
 
       return {
@@ -965,7 +965,7 @@
     function buildDisplayText(report) {
       if (report.raw) {
         const coordCount = report.coords ? report.coords.split("\n").filter(Boolean).length : Number(report.amount || 0);
-        return report.raw.replace(/(🌸[^\n]*?)(\d+)\s*[株珠]/, `$1${coordCount}株`);
+        return report.raw.replace(/(🌸[^\n]*?)(\d+)\s*株/, `$1${coordCount}株`);
       }
       return `${report.place}\n🌸${report.color}${report.flower}${report.amount ? report.amount + "株" : ""}\n⏰${formatDisplayTime(report.time)}\n📝${report.note}`.trim();
     }
@@ -1094,6 +1094,95 @@
       }
     }
 
+    function escapeXml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function sanitizeFileName(value) {
+      return String(value || "收果路徑")
+        .replace(/[\/:*?"<>|]/g, "_")
+        .replace(/\s+/g, " ")
+        .trim() || "收果路徑";
+    }
+
+    function parseCoordinateLines(coordsText) {
+      return cleanCoordsText(coordsText)
+        .split("\n")
+        .map(line => {
+          const match = line.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+          if (!match) return null;
+
+          const lat = Number(match[1]);
+          const lon = Number(match[2]);
+          if (!Number.isFinite(lat) || !Number.isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+            return null;
+          }
+
+          return { lat, lon };
+        })
+        .filter(Boolean);
+    }
+
+    function buildFruitGpx(coordsText) {
+      const sourcePoints = parseCoordinateLines(coordsText);
+      const longitudeOffsets = [-0.000045, 0, 0.000045];
+      const fruitPoints = [];
+
+      const positionLabels = ["L", "M", "R"];
+
+      sourcePoints.forEach((point, sourceIndex) => {
+        longitudeOffsets.forEach((offset, positionIndex) => {
+          fruitPoints.push({
+            lat: point.lat,
+            lon: point.lon + offset,
+            name: `P${sourceIndex + 1}-${positionLabels[positionIndex]}`
+          });
+        });
+      });
+
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="ItsXiaoXiao1028">
+${fruitPoints.map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon="${escapeXml(point.lon.toFixed(6))}"><name>${escapeXml(point.name)}</name></wpt>`).join("\n")}
+</gpx>`;
+    }
+
+    async function arJumpHarvest(id) {
+      const report = reports.find(item => item.id === id);
+      if (!report || !report.coords) {
+        showToast("這筆公告沒有座標可以產生 AR 跳收內容");
+        return;
+      }
+
+      const sourcePoints = parseCoordinateLines(report.coords);
+      const originalCoordCount = getCoordCount(report.coords);
+      if (!sourcePoints.length || sourcePoints.length !== originalCoordCount) {
+        alert("座標格式有誤，請確認每一行皆為「緯度,經度」。");
+        return;
+      }
+
+      const gpx = buildFruitGpx(report.coords);
+
+      try {
+        await navigator.clipboard.writeText(gpx);
+      } catch (error) {
+        const temp = document.createElement("textarea");
+        temp.value = gpx;
+        temp.style.position = "fixed";
+        temp.style.opacity = "0";
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        temp.remove();
+      }
+
+      showToast(`已複製 ARflash 跳收 GPX（${sourcePoints.length * 3} 個跳點）`);
+    }
+
     async function copyContent(id) {
       const report = reports.find(item => item.id === id);
       const content = report ? buildCopyContent(report) : "";
@@ -1203,6 +1292,7 @@
                     <div class="row-actions">
                       <button onclick="copyContent('${report.id}')">複製內文</button>
                       <button class="green" onclick="copyCoords('${report.id}')">複製座標</button>
+                      <button class="secondary" onclick="arJumpHarvest('${report.id}')">AR跳收</button>
                       <span class="admin-actions">
                         <button class="green" onclick="editReport('${report.id}')">編輯</button>
                         <button class="danger" onclick="deleteReport('${report.id}')">刪除</button>
@@ -1275,6 +1365,7 @@
     }
 
     window.copyCoords = copyCoords;
+    window.arJumpHarvest = arJumpHarvest;
     window.copyContent = copyContent;
     window.editReport = editReport;
     window.deleteReport = deleteReport;
