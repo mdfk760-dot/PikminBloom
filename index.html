@@ -226,6 +226,22 @@
       border-bottom: 0;
     }
 
+    /* 桌機版可收果區域：只微縮備註欄，操作欄剛好容納 4 個一般按鈕 */
+    .active-table .result-row {
+      grid-template-columns: minmax(85px, 0.65fr) minmax(145px, 1.15fr) minmax(115px, 0.9fr) minmax(125px, 1.05fr) 68px minmax(440px, 2.75fr);
+    }
+
+    .active-table .row-actions {
+      gap: 6px;
+    }
+
+    .active-table .row-actions > button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 8px 8px;
+      font-size: 12px;
+    }
+
     .result-header {
       background: #fff0f5;
       color: var(--primary-dark);
@@ -555,15 +571,15 @@
         font-size: 14px;
       }
 
-      /* 可收果區域：三個一般操作按鈕在手機版固定同一行 */
+      /* 可收果區域：四個一般操作按鈕在手機版固定同一行 */
       .active-table .row-actions {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 6px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
       }
 
       .active-table .row-actions > button {
-        padding: 10px 4px;
-        font-size: 12px;
+        padding: 10px 3px;
+        font-size: 11px;
         white-space: nowrap;
       }
 
@@ -1146,11 +1162,10 @@
         .filter(Boolean);
     }
 
-    function buildFruitGpx(coordsText) {
+    function buildFruitGpx(coordsText, trackName = "妖妖收果路徑") {
       const sourcePoints = parseCoordinateLines(coordsText);
       const longitudeOffsets = [-0.000045, 0, 0.000045];
       const fruitPoints = [];
-
       const positionLabels = ["L", "M", "R"];
 
       sourcePoints.forEach((point, sourceIndex) => {
@@ -1163,9 +1178,23 @@
         });
       });
 
+      const wptContent = fruitPoints
+        .map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon="${escapeXml(point.lon.toFixed(6))}"><name>${escapeXml(point.name)}</name></wpt>`)
+        .join("\n");
+
+      const trkptContent = sourcePoints
+        .map(point => `      <trkpt lat="${escapeXml(point.lat.toFixed(6))}" lon="${escapeXml(point.lon.toFixed(6))}"></trkpt>`)
+        .join("\n");
+
       return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="XiaoXiao">
-${fruitPoints.map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon="${escapeXml(point.lon.toFixed(6))}"><name>${escapeXml(point.name)}</name></wpt>`).join("\n")}
+${wptContent}
+  <trk>
+    <name>${escapeXml(trackName)}</name>
+    <trkseg>
+${trkptContent}
+    </trkseg>
+  </trk>
 </gpx>`;
     }
 
@@ -1183,7 +1212,8 @@ ${fruitPoints.map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon=
         return;
       }
 
-      const gpx = buildFruitGpx(report.coords);
+      const trackName = buildDownloadGpxFileName(report, sourcePoints.length).replace(/\.gpx$/i, "");
+      const gpx = buildFruitGpx(report.coords, trackName);
 
       try {
         await navigator.clipboard.writeText(gpx);
@@ -1199,6 +1229,44 @@ ${fruitPoints.map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon=
       }
 
       showToast(`已複製 AR 跳收 GPX（${sourcePoints.length * 3} 個跳點）`);
+    }
+
+    function buildDownloadGpxFileName(report, coordCount) {
+      const flowerText = `${report.color || ""}${report.flower || ""}${coordCount || getReportCoordCount(report)}株`;
+      return `${sanitizeFileName(`妖妖收果_${flowerText}`)}.gpx`;
+    }
+
+    function downloadTextFile(content, fileName, mimeType = "application/gpx+xml;charset=utf-8") {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadFruitGpx(id) {
+      const report = reports.find(item => item.id === id);
+      if (!report || !report.coords) {
+        showToast("這筆公告沒有座標可以下載 GPX");
+        return;
+      }
+
+      const sourcePoints = parseCoordinateLines(report.coords);
+      const originalCoordCount = getCoordCount(report.coords);
+      if (!sourcePoints.length || sourcePoints.length !== originalCoordCount) {
+        alert("座標格式有誤，請確認每一行皆為「緯度,經度」。");
+        return;
+      }
+
+      const fileName = buildDownloadGpxFileName(report, sourcePoints.length);
+      const trackName = fileName.replace(/\.gpx$/i, "");
+      const gpx = buildFruitGpx(report.coords, trackName);
+      downloadTextFile(gpx, fileName);
+      showToast(`已下載 GPX：${fileName}`);
     }
 
     async function copyContent(id) {
@@ -1311,6 +1379,7 @@ ${fruitPoints.map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon=
                       <button onclick="copyContent('${report.id}')">複製內文</button>
                       <button class="green" onclick="copyCoords('${report.id}')">複製座標</button>
                       <button class="secondary" onclick="arJumpHarvest('${report.id}')">AR跳收</button>
+                      <button class="download" onclick="downloadFruitGpx('${report.id}')">下載GPX</button>
                       <span class="admin-actions">
                         <button class="green" onclick="editReport('${report.id}')">編輯</button>
                         <button class="danger" onclick="deleteReport('${report.id}')">刪除</button>
@@ -1384,6 +1453,7 @@ ${fruitPoints.map(point => `  <wpt lat="${escapeXml(point.lat.toFixed(6))}" lon=
 
     window.copyCoords = copyCoords;
     window.arJumpHarvest = arJumpHarvest;
+    window.downloadFruitGpx = downloadFruitGpx;
     window.copyContent = copyContent;
     window.editReport = editReport;
     window.deleteReport = deleteReport;
