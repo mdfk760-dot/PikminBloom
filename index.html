@@ -156,10 +156,64 @@
 
     .admin-panel {
       display: none;
-      padding: 18px;
+      padding: 0;
+      overflow: hidden;
     }
 
     .admin-panel.active { display: block; }
+
+    .admin-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 240, 245, 0.72);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .admin-panel-header:hover .admin-panel-title,
+    .admin-panel-header:hover .admin-collapse-btn {
+      filter: brightness(0.95);
+    }
+
+    .admin-panel-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 900;
+      color: var(--primary-dark);
+    }
+
+    .admin-collapse-btn {
+      width: auto !important;
+      min-width: 0 !important;
+      min-height: 0 !important;
+      height: auto !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+      background: transparent !important;
+      color: var(--primary-dark) !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      font-size: 18px !important;
+      line-height: 1 !important;
+      pointer-events: none;
+    }
+
+    .admin-collapse-btn:hover {
+      background: transparent !important;
+      transform: none !important;
+    }
+
+    .admin-panel-body {
+      padding: 18px;
+    }
+
+    .admin-panel.collapsed .admin-panel-body {
+      display: none;
+    }
 
     .admin-grid {
       display: grid;
@@ -375,14 +429,40 @@
     }
 
     dialog {
+      position: relative;
       border: 0;
       border-radius: 20px;
-      padding: 20px;
+      padding: 24px 20px 20px;
       width: min(420px, calc(100% - 36px));
       box-shadow: var(--shadow);
     }
 
     dialog::backdrop { background: rgba(40, 28, 20, 0.35); }
+
+    #closeLoginBtn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px !important;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 24px;
+      font-weight: 500;
+      line-height: 1;
+    }
+
+    #closeLoginBtn:hover {
+      background: #fff8f2;
+      color: var(--text);
+      transform: none;
+    }
 
     .small-row {
       display: flex;
@@ -641,15 +721,20 @@
         <select id="colorFilter">
           <option value="">全部花色</option>
         </select>
-        <select id="flowerFilter">
-          <option value="">全部花種</option>
-        </select>
+        <input id="flowerFilter" type="search" list="flowerFilterList" placeholder="全部花種（可輸入搜尋）" autocomplete="off" />
+        <datalist id="flowerFilterList"></datalist>
       </div>
       <button id="adminLoginBtn" class="secondary">Admin登入</button>
       <button id="logoutBtn" class="ghost" style="display:none;">Admin登出</button>
     </section>
 
     <section id="adminPanel" class="panel admin-panel">
+      <div id="adminPanelHeader" class="admin-panel-header" role="button" tabindex="0" aria-expanded="true" aria-controls="adminPanelBody">
+        <h2 class="admin-panel-title">Admin 管理區</h2>
+        <button id="adminCollapseBtn" class="admin-collapse-btn" type="button" tabindex="-1" aria-hidden="true">▲</button>
+      </div>
+
+      <div id="adminPanelBody" class="admin-panel-body">
       <div class="admin-grid">
         <div class="field half">
           <label for="rawInput">貼上內容</label>
@@ -685,7 +770,8 @@
 
         <div class="field">
           <label for="flowerInput">花朵種類</label>
-          <select id="flowerInput"></select>
+          <input id="flowerInput" type="search" list="flowerInputList" placeholder="輸入或選擇花種" autocomplete="off" />
+          <datalist id="flowerInputList"></datalist>
         </div>
 
         <div class="field">
@@ -710,6 +796,7 @@
         管理密碼已改由 Google Apps Script 驗證，HTML 不再保存管理密碼。<br />
         目前資料會寫入 Google Spreadsheet，所有使用者會讀取同一份公告資料。
       </div>
+      </div>
     </section>
 
     <section id="cards" class="cards"></section>
@@ -719,14 +806,12 @@
   <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【疲勞部私人群組】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用。</footer>
 
   <dialog id="loginDialog">
-    <h3 style="margin-top:0;">Admin 管理登入</h3>
+    <button id="closeLoginBtn" type="button" aria-label="關閉登入視窗" title="關閉">&times;</button>
+    <h3 style="margin:0 44px 0 0;">Admin 管理登入</h3>
     <p style="color:var(--muted);line-height:1.6;">輸入管理密碼後，可新增、編輯、刪除公告。</p>
     <div class="small-row">
       <input id="passwordInput" type="password" placeholder="管理密碼" />
       <button id="confirmLoginBtn">登入</button>
-    </div>
-    <div class="small-row">
-      <button id="cancelLoginBtn" class="ghost">取消</button>
     </div>
   </dialog>
 
@@ -776,9 +861,10 @@
         $("colorInput").append(new Option(color, color));
         $("colorFilter").append(new Option(color, color));
       }
+
       for (const flower of FLOWERS) {
-        $("flowerInput").append(new Option(flower, flower));
-        $("flowerFilter").append(new Option(flower, flower));
+        $("flowerInputList").append(new Option(flower, flower));
+        $("flowerFilterList").append(new Option(flower, flower));
       }
     }
 
@@ -808,6 +894,32 @@
       $("amountInput").value = getCoordCount($("coordsInput").value) || "";
     }
 
+    function normalizeFlowerText(value) {
+      return String(value || "")
+        .normalize("NFKC")
+        .replace(/[🌸🌼🌺💐]/gu, "")
+        .replace(/\d+\s*株/gu, "")
+        .replace(/[「」『』【】()（）\[\]：:，,。.!！?？\s]/gu, "")
+        .trim();
+    }
+
+    function detectFlowerName(flowerLine, detectedColor = "") {
+      let flowerText = normalizeFlowerText(flowerLine);
+
+      // 先移除已辨識的花色，避免顏色文字干擾花名判定。
+      if (detectedColor && flowerText.startsWith(detectedColor)) {
+        flowerText = flowerText.slice(detectedColor.length);
+      }
+
+      // 關鍵：花名由長到短比對，避免「聖誕玫瑰／週年玫瑰」被先判成「玫瑰」。
+      const flowersByLength = [...FLOWERS].sort((a, b) => b.length - a.length);
+
+      return flowersByLength.find(flower => {
+        const normalizedFlower = normalizeFlowerText(flower);
+        return flowerText === normalizedFlower || flowerText.startsWith(normalizedFlower);
+      }) || flowersByLength.find(flower => flowerText.includes(normalizeFlowerText(flower))) || "";
+    }
+
     function parseReportText(text) {
       const cleaned = cleanSpreadsheetText(text);
       const lines = cleaned.split("\n").map(line => line.trim()).filter(Boolean);
@@ -816,8 +928,13 @@
       const timeLine = lines.find(line => line.includes("⏰")) || "";
       const noteLine = lines.find(line => line.includes("📝")) || "";
 
-      const color = COLORS.find(c => flowerLine.includes(c)) || "";
-      const flower = FLOWERS.find(f => flowerLine.includes(f)) || "";
+      const normalizedFlowerLine = normalizeFlowerText(flowerLine);
+      const color = COLORS
+        .filter(c => c !== "混色")
+        .sort((a, b) => b.length - a.length)
+        .find(c => normalizedFlowerLine.startsWith(c) || normalizedFlowerLine.includes(c)) ||
+        (normalizedFlowerLine.includes("混色") ? "混色" : "");
+      const flower = detectFlowerName(flowerLine, color);
       const amountMatch = flowerLine.match(/(\d+)\s*株/);
       const timeMatch = timeLine.match(/(\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{2})/);
 
@@ -918,6 +1035,14 @@
       }
     }
 
+    function setAdminPanelCollapsed(collapsed) {
+      const panel = $("adminPanel");
+      panel.classList.toggle("collapsed", collapsed);
+      $("adminPanelHeader").setAttribute("aria-expanded", collapsed ? "false" : "true");
+      $("adminCollapseBtn").textContent = collapsed ? "▼" : "▲";
+      sessionStorage.setItem("pikminAdminPanelCollapsed", collapsed ? "true" : "false");
+    }
+
     function setAdminMode(value) {
       isAdmin = value;
       sessionStorage.setItem("pikminAdmin", value ? "true" : "false");
@@ -925,7 +1050,47 @@
       $("adminPanel").classList.toggle("active", value);
       $("adminLoginBtn").style.display = value ? "none" : "inline-block";
       $("logoutBtn").style.display = value ? "inline-block" : "none";
+      if (value) {
+        setAdminPanelCollapsed(sessionStorage.getItem("pikminAdminPanelCollapsed") === "true");
+      }
       renderReports();
+    }
+
+    function normalizeFlowerName(value) {
+      return String(value || "")
+        .normalize("NFKC")
+        .replace(/[\s　]+/g, "")
+        .trim();
+    }
+
+    function getCanonicalFlowerName(value) {
+      const normalizedValue = normalizeFlowerName(value);
+      if (!normalizedValue) return "";
+
+      return FLOWERS.find(flower => normalizeFlowerName(flower) === normalizedValue) || "";
+    }
+
+    function validateFlowerInput(showAlert = false) {
+      const input = $("flowerInput");
+      const typedValue = input.value;
+      const canonicalFlower = getCanonicalFlowerName(typedValue);
+      const isValid = canonicalFlower !== "";
+
+      input.setCustomValidity(isValid ? "" : "花朵種類必須是清單中的完整花名");
+
+      if (isValid) {
+        // 統一寫回清單中的標準名稱，避免全形空白或 Unicode 字形差異。
+        input.value = canonicalFlower;
+      } else if (showAlert) {
+        const displayValue = typedValue.trim();
+        alert(displayValue
+          ? `「${displayValue}」不是有效花種。花朵種類必須從清單中選擇完整花名。`
+          : "請輸入或選擇花朵種類。");
+        input.focus();
+        input.select();
+      }
+
+      return isValid;
     }
 
     function getFormData() {
@@ -934,7 +1099,7 @@
         id: editingId || crypto.randomUUID(),
         place: $("placeInput").value.trim(),
         color: $("colorInput").value,
-        flower: $("flowerInput").value,
+        flower: $("flowerInput").value.trim(),
         amount: String(getCoordCount($("coordsInput").value)),
         time: $("timeInput").value.trim(),
         note: $("noteInput").value.trim(),
@@ -950,7 +1115,7 @@
       $("coordsInput").value = report.coords || "";
       $("placeInput").value = report.place || "";
       $("colorInput").value = report.color || COLORS[0];
-      $("flowerInput").value = report.flower || FLOWERS[0];
+      $("flowerInput").value = report.flower || "";
       $("amountInput").value = report.coords ? getCoordCount(report.coords) : (report.amount || "");
       $("timeInput").value = formatDisplayTime(report.time) || "";
       $("noteInput").value = report.note || "";
@@ -966,7 +1131,7 @@
       $("amountInput").value = "";
       $("noteInput").value = "";
       $("colorInput").value = COLORS[0];
-      $("flowerInput").value = FLOWERS[0];
+      $("flowerInput").value = "";
     }
 
     function escapeHtml(value) {
@@ -1293,13 +1458,13 @@ ${trkptContent}
     function renderReports() {
       const keyword = $("keyword").value.trim().toLowerCase();
       const color = $("colorFilter").value;
-      const flower = $("flowerFilter").value;
+      const flower = $("flowerFilter").value.trim().toLowerCase();
 
       const filtered = reports.filter(report => {
         const combined = JSON.stringify(report).toLowerCase();
         return (!keyword || combined.includes(keyword)) &&
           (!color || report.color === color) &&
-          (!flower || report.flower === flower);
+          (!flower || String(report.flower || "").toLowerCase().includes(flower));
       });
 
       if (!filtered.length) {
@@ -1492,7 +1657,15 @@ ${trkptContent}
       $("coordsInput").value = coordsText;
       syncAmountWithCoords();
 
+      // 最後一道強制驗證：未列於 FLOWERS 清單的內容絕不送往 Google Apps Script。
+      if (!validateFlowerInput(true)) return;
+
       const data = getFormData();
+      if (!getCanonicalFlowerName(data.flower)) {
+        alert("花朵種類驗證失敗，請重新從清單選擇。");
+        $("flowerInput").focus();
+        return;
+      }
       if (!data.place) {
         alert("請至少填寫地點 / 花田名稱。若已貼上公告文字，可先按「從公告文字自動解析」。");
         return;
@@ -1522,13 +1695,33 @@ ${trkptContent}
       showToast("已刪除全部公告");
     });
 
+    $("flowerInput").addEventListener("input", () => {
+      // 輸入過程即同步有效性；仍可繼續打字搜尋，但無效名稱不能儲存。
+      validateFlowerInput(false);
+    });
+    $("flowerInput").addEventListener("change", () => validateFlowerInput(false));
+    $("flowerInput").addEventListener("blur", () => validateFlowerInput(false));
+
+    function toggleAdminPanel() {
+      setAdminPanelCollapsed(!$("adminPanel").classList.contains("collapsed"));
+    }
+
+    $("adminPanelHeader").addEventListener("click", toggleAdminPanel);
+    $("adminPanelHeader").addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleAdminPanel();
+      }
+    });
+
     $("coordsInput").addEventListener("input", syncAmountWithCoords);
     $("keyword").addEventListener("input", renderReports);
     $("colorFilter").addEventListener("change", renderReports);
+    $("flowerFilter").addEventListener("input", renderReports);
     $("flowerFilter").addEventListener("change", renderReports);
 
     $("adminLoginBtn").addEventListener("click", () => $("loginDialog").showModal());
-    $("cancelLoginBtn").addEventListener("click", () => $("loginDialog").close());
+    $("closeLoginBtn").addEventListener("click", () => $("loginDialog").close());
     $("passwordInput").addEventListener("keydown", event => {
       if (event.key === "Enter") $("confirmLoginBtn").click();
     });
@@ -1562,15 +1755,65 @@ ${trkptContent}
       showToast("已離開管理模式");
     });
 
-    fillOptions();
-    loadReports().then(() => {
-      setAdminMode(isAdmin);
-      renderReports();
+    const REPORT_REFRESH_INTERVAL = 60 * 1000;
+    const REPORT_REFRESH_STALE_AFTER = 30 * 1000;
+
+    let refreshTimer = null;
+    let isLoadingReports = false;
+    let lastReportsRefreshAt = 0;
+
+    async function refreshReports({ force = false } = {}) {
+      // 頁面位於背景時停止呼叫 Google Apps Script API。
+      if (!force && document.visibilityState !== "visible") return;
+
+      // 避免前一次讀取尚未完成時，又送出下一個重複請求。
+      if (isLoadingReports) return;
+
+      isLoadingReports = true;
+      try {
+        await loadReports();
+        lastReportsRefreshAt = Date.now();
+        renderReports();
+      } finally {
+        isLoadingReports = false;
+      }
+    }
+
+    function stopReportsRefreshTimer() {
+      if (refreshTimer !== null) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function startReportsRefreshTimer() {
+      stopReportsRefreshTimer();
+
+      // 只有頁面在前景時才建立固定刷新計時器。
+      if (document.visibilityState !== "visible") return;
+
+      refreshTimer = setInterval(() => {
+        refreshReports();
+      }, REPORT_REFRESH_INTERVAL);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") {
+        // 回到網頁時，若資料已超過 30 秒未更新，立即刷新一次。
+        if (Date.now() - lastReportsRefreshAt >= REPORT_REFRESH_STALE_AFTER) {
+          refreshReports();
+        }
+        startReportsRefreshTimer();
+      } else {
+        stopReportsRefreshTimer();
+      }
     });
-    setInterval(async () => {
-      await loadReports();
-      renderReports();
-    }, 60000);
+
+    fillOptions();
+    refreshReports({ force: true }).then(() => {
+      setAdminMode(isAdmin);
+    });
+    startReportsRefreshTimer();
   </script>
 </body>
 </html>
