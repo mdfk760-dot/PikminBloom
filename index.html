@@ -1241,8 +1241,8 @@
       const coordCount = getReportCoordCount(report);
 
       // 預計完成時間依苗數量計算：
-      // 30 株以下（含）加 20 分鐘；40 株以下（含）加 25 分鐘；40 株以上加 30 分鐘。
-      if (coordCount <= 30) return 20;
+      // 25 株以下（含）加 20 分鐘；40 株以下（含）加 25 分鐘；40 株以上加 30 分鐘。
+      if (coordCount <= 25) return 20;
       if (coordCount <= 40) return 25;
       return 30;
     }
