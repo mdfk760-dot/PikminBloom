@@ -710,6 +710,15 @@
         max-width: calc(100% - 20px);
         border-radius: 18px;
         padding: 12px 14px;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .notice-float.dragging {
+        cursor: grabbing;
+        transition: none;
       }
 
       .notice-float-title {
@@ -733,7 +742,7 @@
   <main class="wrap">
     <section class="topbar">
       <div class="search-area">
-        <input id="keyword" type="search" placeholder="搜尋花田、花色、花種、備註…" />
+        <input id="keyword" type="search" placeholder="搜尋地點、花色、花種、備註…" />
         <select id="colorFilter">
           <option value="">全部花色</option>
         </select>
@@ -819,7 +828,7 @@
     <div id="empty" class="empty">目前沒有符合條件的開花公告。</div>
   </main>
 
-  <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【種花小隊私群】、【疲勞部私群】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用。</footer>
+  <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【疲勞部私人群組】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用。</footer>
 
   <dialog id="loginDialog">
     <button id="closeLoginBtn" type="button" aria-label="關閉登入視窗" title="關閉">&times;</button>
@@ -1825,7 +1834,104 @@ ${trkptContent}
       }
     });
 
+    function enableMobileNoticeDrag() {
+      const notice = document.querySelector(".notice-float");
+      if (!notice) return;
+
+      const mobileMedia = window.matchMedia("(max-width: 1024px)");
+      const storageKey = "pikminNoticeFloatPosition";
+      let dragging = false;
+      let pointerOffsetX = 0;
+      let pointerOffsetY = 0;
+
+      function clampPosition(left, top) {
+        const margin = 8;
+        const maxLeft = Math.max(margin, window.innerWidth - notice.offsetWidth - margin);
+        const maxTop = Math.max(margin, window.innerHeight - notice.offsetHeight - margin);
+        return {
+          left: Math.min(Math.max(left, margin), maxLeft),
+          top: Math.min(Math.max(top, margin), maxTop)
+        };
+      }
+
+      function applyPosition(left, top, save = false) {
+        if (!mobileMedia.matches) return;
+        const position = clampPosition(left, top);
+        notice.style.left = `${position.left}px`;
+        notice.style.top = `${position.top}px`;
+        notice.style.right = "auto";
+        notice.style.bottom = "auto";
+
+        if (save) {
+          localStorage.setItem(storageKey, JSON.stringify(position));
+        }
+      }
+
+      function restorePosition() {
+        if (!mobileMedia.matches) {
+          notice.style.left = "";
+          notice.style.top = "";
+          notice.style.right = "";
+          notice.style.bottom = "";
+          return;
+        }
+
+        try {
+          const saved = JSON.parse(localStorage.getItem(storageKey) || "null");
+          if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) {
+            applyPosition(saved.left, saved.top);
+          }
+        } catch (error) {
+          localStorage.removeItem(storageKey);
+        }
+      }
+
+      notice.addEventListener("pointerdown", event => {
+        if (!mobileMedia.matches || event.button !== 0) return;
+
+        const rect = notice.getBoundingClientRect();
+        dragging = true;
+        pointerOffsetX = event.clientX - rect.left;
+        pointerOffsetY = event.clientY - rect.top;
+        notice.classList.add("dragging");
+        notice.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      });
+
+      notice.addEventListener("pointermove", event => {
+        if (!dragging || !mobileMedia.matches) return;
+        applyPosition(event.clientX - pointerOffsetX, event.clientY - pointerOffsetY);
+        event.preventDefault();
+      });
+
+      function stopDragging(event) {
+        if (!dragging) return;
+        dragging = false;
+        notice.classList.remove("dragging");
+
+        const rect = notice.getBoundingClientRect();
+        applyPosition(rect.left, rect.top, true);
+
+        if (event && notice.hasPointerCapture(event.pointerId)) {
+          notice.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      notice.addEventListener("pointerup", stopDragging);
+      notice.addEventListener("pointercancel", stopDragging);
+
+      window.addEventListener("resize", () => {
+        if (!mobileMedia.matches) return;
+        const rect = notice.getBoundingClientRect();
+        applyPosition(rect.left, rect.top, true);
+      });
+
+      mobileMedia.addEventListener("change", restorePosition);
+      requestAnimationFrame(restorePosition);
+    }
+
     fillOptions();
+    enableMobileNoticeDrag();
     refreshReports({ force: true }).then(() => {
       setAdminMode(isAdmin);
     });
