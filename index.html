@@ -571,6 +571,11 @@
       .topbar { align-items: stretch; }
       .search-area,
       .topbar > button { width: 100%; }
+
+      /* 手機版隱藏「全部花種（可輸入搜尋）」欄位 */
+      #flowerFilter {
+        display: none;
+      }
       button { width: 100%; }
       .actions button,
       .small-row button { width: auto; }
@@ -728,7 +733,7 @@
   <main class="wrap">
     <section class="topbar">
       <div class="search-area">
-        <input id="keyword" type="search" placeholder="搜尋地點、花色、花種、備註…" />
+        <input id="keyword" type="search" placeholder="搜尋花田、花色、花種、備註…" />
         <select id="colorFilter">
           <option value="">全部花色</option>
         </select>
@@ -814,7 +819,7 @@
     <div id="empty" class="empty">目前沒有符合條件的開花公告。</div>
   </main>
 
-  <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【疲勞部私人群組】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用。</footer>
+  <footer class="page-footer-note">本頁面僅透過妖妖本人分享於【種花小隊私群】、【疲勞部私群】、【皮克敏飛人交流群】、【pikmin bloom皮皮之家】，並無授權其他社群使用。</footer>
 
   <dialog id="loginDialog">
     <button id="closeLoginBtn" type="button" aria-label="關閉登入視窗" title="關閉">&times;</button>
